@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+{% import "_macros.html" as macros %}
+
+{% block title %}Mxtan - 文章{% endblock %}
+
+{% block page_content %}
+<ul class="posts">
+    {% for post in posts %}
+    <li class="post">
+        <div class="post-thumbnail">
+            <a href="{{ url_for('.user', username=comment.author.username) }}">
+                <img class="img-rounded profile-thumbnail" height="40px" src="{{ post.author.gravatar(size=40) }}">
+            </a>
+        </div>
+        <div class="post-content">
+            <div class="post-date">{{ moment(comment.posts.timestamp).fromNow() }}</div>
+            <div class="post-author"><a href="{{ url_for('.user', username=comment.author.username) }}">{{ comment.author.username }}</a></div>
+            <div>
+                <a href="{{ url_for('.post', id=comment.posts.id) }}">{{ comment.posts.subject }}</a>
+            </div>
+            <div class="post-body">
+                    {{ comment.posts.body }}
+            </div>
+            <div class="post-footer">
+                {% if current_user == comment.posts.author %}
+                <a href="{{ url_for('.edit', id=comment.posts.id) }}">
+                    <span class="label label-primary">编辑</span>
+                </a>
+                {% elif current_user.is_administrator() %}
+                <a href="{{ url_for('.edit', id=comment.posts.id) }}">
+                    <span class="label label-danger">编辑 [Admin]</span>
+                </a>
+                <a href="{{ url_for('.post', id=comment.posts.id) }}">
+                    <span class="label label-default">链接</span>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+<h4 id="comments">评论</h4>
+{% if current_user.can(Permission.COMMENT) %}
+<div class="comment-form">
+    {{ wtf.quick_form(form) }}
+</div>
+{% endif %}
+<ul class="comments">
+    <li class="comment">
+        <div class="comment-thumbnail">
+            <a href="{{ url_for('.user', username=comment.author.username) }}">
+                <img class="img-rounded profile-thumbnail" height="40px" src="{{ comment.author.gravatar(size=40) }}">
+            </a>
+        </div>
+        <div class="comment-content">
+            <div class="comment-date">{{ moment(comment.timestamp).fromNow() }}</div>
+            <div class="comment-author"><a href="{{ url_for('.user', username=comment.author.username) }}">{{ comment.author.username }}</a></div>
+            <div class="comment-body">
+                {% if comment.disabled %}
+                <p><i>这评论已经被管理员禁用。</i></p>
+                {% endif %}
+                {% if moderate or not comment.disabled %}
+                    {{ comment.body }}
+                {% endif %}
+            </div>
+            {% if moderate %}
+                <br>
+                {% if comment.disabled %}
+                <a class="btn btn-default btn-xs" href="{{ url_for('.moderate_enable', id=comment.id, page=page) }}">显示</a>
+                {% else %}
+                <a class="btn btn-danger btn-xs" href="{{ url_for('.moderate_disable', id=comment.id, page=page) }}">禁用</a>
+                {% endif %}
+            {% endif %}
+        </div>
+    </li>
+</ul>
+
+{% if pagination %}
+<div class="pagination">
+    {{ macros.pagination_widget(pagination, '.post', fragment='#comments', id=posts[0].id) }}
+</div>
+{% endif %}
+{% endblock %}
