@@ -98,6 +98,7 @@ def change_password():
         if current_user.verify_password(form.old_password.data):
             current_user.password = form.password.data
             db.session.add(current_user)
+            db.session.commit()
             flash('你的密码已经更新。请重新登陆~')
             logout_user()
             return redirect(url_for('auth.login'))

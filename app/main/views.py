@@ -77,6 +77,7 @@ def edit_profile():
         current_user.location = form.location.data
         current_user.about_me = form.about_me.data
         db.session.add(current_user)
+        db.session.commit()
         flash('你的个人信息修改成功')
         return redirect(url_for('.user', username=current_user.username))
     form.name.data = current_user.name
@@ -100,6 +101,7 @@ def edit_profile_admin(id):
         user.location = form.location.data
         user.about_me = form.about_me.data
         db.session.add(user)
+        db.session.commit()
         flash('此用户的信息修改成功')
         return redirect(url_for('.user', username=user.username))
     form.email.data = user.email
@@ -137,6 +139,7 @@ def post(id):
                           post=post,
                           author=current_user._get_current_object())
         db.session.add(comment)
+        db.session.commit()
         flash('评论成功。')
         return redirect(url_for('.post', id=post.id, page=-1))
     page = request.args.get('page', 1, type=int)
@@ -156,7 +159,6 @@ def search():
     form = SearchForm()
     if form.validate_on_submit():
         return redirect(url_for('.search_body', body=form.body.data))
-
     return render_template('search.html', form=form)
 
 
@@ -195,6 +197,7 @@ def edit(id):
         post.subject = form.subject.data
         post.body = form.body.data
         db.session.add(current_user)
+        db.session.commit()
         flash('你的文章修改成功。')
         return redirect(url_for('.post', id=post.id, page=-1))
     form.subject.data = post.subject
@@ -295,6 +298,7 @@ def edit_comment(id):
     if form.validate_on_submit():
         comment.body = form.body.data
         db.session.add(comment)
+        db.session.commit()
         flash('修改成功')
         return redirect('.post', id=comment.posts.id)
     return render_template('edit_comment.html', form=form,
@@ -335,6 +339,7 @@ def moderate_enable(id):
     comment = Comment.query.get_or_404(id)
     comment.disabled = False
     db.session.add(comment)
+    db.session.commit()
     return redirect(url_for('.moderate',
                             page=request.args.get('page', 1, type=int)))
 
@@ -346,5 +351,6 @@ def moderate_disable(id):
     comment = Comment.query.get_or_404(id)
     comment.disabled = True
     db.session.add(comment)
+    db.session.commit()
     return redirect(url_for('.moderate',
                             page=request.args.get('page', 1, type=int)))
