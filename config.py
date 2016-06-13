@@ -19,7 +19,8 @@ class Config:
     FLASKY_COMMENTS_PER_PAGE = 30
     FLASKY_FOLLOWERS_PER_PAGE = 30
     SQLALCHEMY_RECORD_QUERIES = True    # 启用记录查询统计数字的功能
-    FLASKY_SLOW_DB_QUERY_TIME = 0.5       # 缓慢查询的阈值设为0.5秒。
+    FLASKY_SLOW_DB_QUERY_TIME=0.5       # 缓慢查询的阈值设为0.5秒。
+    SSL_DISABLE = False
 
     @staticmethod
     def init_app(app):
@@ -55,7 +56,7 @@ class ProductionConfig(Config):
         if getattr(cls, 'MAIL_USERNAME', None) is not None:
             credentials = (cls.MAIL_USERNAME, cls.MAIL_PASSWORD)
             if getattr(cls, 'MAIL_USE_TLS', None):
-                secure()
+                secure = ()
         mail_handler = SMTPHandler(
             mailhost=(cls.MAIL_SERVER, cls.MAIL_PORT),
             fromaddr=cls.FLASKY_MAIL_SENDER,
@@ -67,10 +68,30 @@ class ProductionConfig(Config):
         app.logger.addHandler(mail_handler)
 
 
+class HerokuConfig(ProductionConfig):
+    SSL_DISABLE = bool(os.environ.get('SSL_DISABLE'))
+
+    @classmethod
+    def init_app(cls, app):
+        ProductionConfig.init_app(app)
+
+        # 处理代理服务器首部
+        from werkzeug.contrib.fixers import ProxyFix
+        app.wsgi_app = ProxyFix(app.wsgi_app)
+
+        # 输出到stderr
+        import logging
+        from logging import StreamHandler
+        file_handler = StreamHandler()
+        file_handler.setLevel(logging.WARNING)
+        app.logger.addHandler(file_handler)
+
+
 config = {
     'development': DevelopmentConfig,
     'testing': TestingConfig,
     'Production': ProductionConfig,
+    'heroku': HerokuConfig,
 
     'default': DevelopmentConfig
 }

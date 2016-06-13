@@ -1,7 +1,7 @@
 # coding=utf-8
 import os
 COV = None
-if os.environ.get('FLASK_CONFIG'):
+if os.environ.get('FLASK_COVERAGE'):
     import coverage
     COV = coverage.coverage(branch=True, include='app/*')
     COV.start()
@@ -64,7 +64,7 @@ def deploy():
     upgrade()
 
     # 创建用户角色
-    Role.insert_role()
+    Role.insert_roles()
 
     # 让所有用户关注自己
     User.add_self_follows()

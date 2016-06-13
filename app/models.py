@@ -26,7 +26,7 @@ class Role(db.Model):
     users = db.relationship('User', backref='role', lazy='dynamic')
 
     @staticmethod
-    def insert_role():
+    def insert_roles():
         roles = {
             'User': (Permission.FOLLOW |
                      Permission.COMMENT |
