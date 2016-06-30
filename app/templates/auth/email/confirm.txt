@@ -1,13 +1,13 @@
-Dear {{ user.username }},
+亲爱的 {{ user.username }},
 
-Welcome to Flasky!
+欢迎来到Mxtan!
 
-To confirm your account please click on the following link:
+确认你的帐户,请点击下面的链接:
 
 {{ url_for('auth.confirm', token=token, _external=True) }}
 
-Sincerely,
+谢谢！
 
-The Flasky Team
+Mxtan
 
-Note: replies to this email address are not monitored.
+注:回复此邮件地址没有监控。
