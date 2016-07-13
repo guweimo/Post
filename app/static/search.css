@@ -1,0 +1,14 @@
+.form-group *{
+    float: left;
+    margin: 5px 10px;
+}
+.form-group input{
+    margin: 0 10px;
+    width: 33%;
+}
+.col-md-4{
+    width: 100%;
+}
+.form-group::before, .form-group::after{
+    clear: both;
+}

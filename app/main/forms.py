@@ -82,5 +82,8 @@ class CommentForm(Form):
 
 
 class SearchForm(Form):
-    body = StringField()
+    body = StringField('内容', validators=[
+        Required(message='不能为空'),
+        Length(1, 128)
+    ])
     submit = SubmitField('搜索')

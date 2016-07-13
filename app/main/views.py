@@ -157,9 +157,10 @@ def post(id):
 @main.route('/search', methods=['GET', 'POST'])
 def search():
     form = SearchForm()
+    pagination = None
     if form.validate_on_submit():
         return redirect(url_for('.search_body', body=form.body.data))
-    return render_template('search.html', form=form)
+    return render_template('search.html', form=form, pagination=pagination)
 
 
 @main.route('/search_body/<body>', methods=['GET', 'POST'])
