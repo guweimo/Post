@@ -3,16 +3,26 @@
 
 {% block title %}Mxtan - 发布文章{% endblock %}
 
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='simditor/styles/simditor.css') }}">
+{% endblock %}
+
 {% block page_content %}
-<div class="page-header">
-    <h1>发布文章</h1>
-</div>
-<div>
-    {{ wtf.quick_form(form) }}
-</div>
+    <div class="page-header">
+        <h1>发布文章</h1>
+    </div>
+    <div class="post-form">
+        {{ wtf.quick_form(form) }}
+    </div>
 {% endblock %}
 
 {% block scripts %}
-{{ super() }}
-{{ pagedown.include_pagedown() }}
+    {{ super() }}
+    {{ pagedown.include_pagedown() }}
+    <script src="{{ url_for('static', filename='js/mxtan.js') }}"></script>
+    <script src="{{ url_for('static', filename='simditor/scripts/module.js') }}"></script>
+    <script src="{{ url_for('static', filename='simditor/scripts/hotkeys.js') }}"></script>
+    <script src="{{ url_for('static', filename='simditor/scripts/simditor.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='js/editor_setup.js') }}"></script>
 {% endblock %}

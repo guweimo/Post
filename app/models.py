@@ -1,14 +1,11 @@
 # coding=utf-8
 from datetime import datetime
-
 from flask import current_app, url_for
 from flask.ext.login import UserMixin, AnonymousUserMixin
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.exceptions import ValidationError
 from . import db, login_manager
-import bleach
-from markdown import markdown
 
 
 class Permission:
@@ -16,6 +13,7 @@ class Permission:
     COMMENT = 0x02
     WRITE_ARTICLES = 0x04
     MODERATE_COMMENTS = 0x08
+    LOOK_IMAGE = 0x10
     ADMINISTER = 0x80
 
 
@@ -29,15 +27,16 @@ class Role(db.Model):
 
     @staticmethod
     def insert_roles():
+        bin_num = Permission.FOLLOW | Permission.COMMENT | Permission.WRITE_ARTICLES
         roles = {
-            'User': (Permission.FOLLOW |
-                     Permission.COMMENT |
-                     Permission.WRITE_ARTICLES, True),
-            'Moderator': (Permission.FOLLOW |
-                          Permission.COMMENT |
-                          Permission.WRITE_ARTICLES |
+            'User': (bin_num, True),
+            'Moderator': (bin_num |
                           Permission.MODERATE_COMMENTS, False),
-            'Administrator': (0xff, False)
+            'Administrator': (bin_num |
+                              Permission.MODERATE_COMMENTS |
+                              Permission.LOOK_IMAGE |
+                              Permission.ADMINISTER, False),
+            'SuperMan': (0xff, False)
         }
 
         for r in roles:
@@ -60,7 +59,6 @@ class Follow(db.Model):
     followed_id = db.Column(db.Integer, db.ForeignKey('users.id'),
                             primary_key=True)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 class User(db.Model, UserMixin):
@@ -75,6 +73,7 @@ class User(db.Model, UserMixin):
     location = db.Column(db.String(64))
     about_me = db.Column(db.Text())
     avatar_hash = db.Column(db.String(64), default='/static/22.jpg')
+    forbidden_time = db.Column(db.DateTime())
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
     member_since = db.Column(db.DateTime(), default=datetime.utcnow)
     followers = db.relationship('Follow',
@@ -89,6 +88,7 @@ class User(db.Model, UserMixin):
                                cascade='all, delete-orphan')
     posts = db.relationship('Post', backref='author', lazy='dynamic')
     comments = db.relationship('Comment', backref='author', lazy='dynamic')
+    upvote = db.relationship('Upvote', backref='author', lazy='dynamic')
 
     @staticmethod
     def add_self_follows():
@@ -271,18 +271,14 @@ class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     subject = db.Column(db.String(256), index=True)
     body = db.Column(db.Text)
-    body_html = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    cover = db.Column(db.String(64))            # 备用
+    disabled = db.Column(db.Boolean, default=False)
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    assortment_id = db.Column(db.Integer, db.ForeignKey('assortments.id'))
+    browse_id = db.Column(db.Integer, db.ForeignKey('browses.id'))
+    upvotes = db.relationship('Upvote', backref='post', lazy='dynamic')
     comments = db.relationship('Comment', backref='post', lazy='dynamic')
-
-    @staticmethod
-    def on_changed_body(target, value, oldvalue, initiator):
-        allowed_tags = ['a', 'abbr', 'acronym', 'b', 'code', 'em', 'i',
-                        'strong']
-        target.body_html = bleach.linkify(bleach.clean(
-            markdown(value, output_format='html'),
-            tags=allowed_tags, strip=True))
 
     def to_json(self):
         json_post = {
@@ -313,19 +309,10 @@ class Comment(db.Model):
     __tablename__ = 'comments'
     id = db.Column(db.Integer, primary_key=True)
     body = db.Column(db.Text)
-    body_html = db.Column(db.Text)
     disabled = db.Column(db.Boolean)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     post_id = db.Column(db.Integer, db.ForeignKey('posts.id'))
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-
-    @staticmethod
-    def on_changed_body(target, value, oldvalue, initiator):
-        allowed_tags = ['a', 'abbr', 'acronym', 'b', 'code', 'em', 'i',
-                        'strong']
-        target.body_html = bleach.linkify(bleach.clean(
-            markdown(value, output_format='html'),
-            tags=allowed_tags, strip=True))
 
     def to_json(self):
         json_comment = {
@@ -344,3 +331,58 @@ class Comment(db.Model):
             raise ValidationError('评论不能为空')
         return Comment(body=body)
 
+
+class Assortment(db.Model):
+    __tablename__ = 'assortments'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64), unique=True, index=True)
+    num = db.Column(db.String(64))
+    menu_id = db.Column(db.Integer, db.ForeignKey('menus.id'))
+    posts = db.relationship('Post', backref='assortment', lazy='dynamic')
+
+    @staticmethod
+    def insert_assortments():
+        assortments = {
+            u'个人随笔': '1',
+            u'个人日记': '1',
+            'HTML': '2',
+            'JS': '2',
+            'Python': '2'
+        }
+        for a in assortments:
+            assortment = Assortment.query.filter_by(name=a).first()
+            if assortment is None:
+                assortment = Assortment(name=a)
+            assortment.num = assortments[a]
+            db.session.add(assortment)
+        db.session.commit()
+
+    def __repr__(self):
+        return '<Assortment %r>' % self.name
+
+
+class Upvote(db.Model):
+    __tablename__ = 'upvotes'
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('posts.id'))
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+
+
+class Image(db.Model):
+    __tablename__ = 'images'
+    id = db.Column(db.Integer, primary_key=True)
+    url = db.Column(db.String(64))
+
+
+class Menu(db.Model):
+    __tablename__ = 'menus'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64))
+    assortments = db.relationship('Assortment', backref='menu', lazy='dynamic')
+
+
+class Browse(db.Model):
+    __tablename__ = 'browses'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64))
+    posts = db.relationship('Post', backref='browse', lazy='dynamic')

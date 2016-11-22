@@ -1,27 +1,16 @@
 {% extends "base.html" %}
 {% import "bootstrap/wtf.html" as wtf %}
 {% import "_macros.html" as macros %}
-{% block head %}
-    {{ super() }}
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='search.css') }}">
-{% endblock %}
 
 {% block title %}Mxtan - 搜索{% endblock %}
-
 
 {% block page_content %}
 <div class="page-header">
     <h1>搜索</h1>
-    <div class="col-md-4" style="float: none;">
-        {{ wtf.quick_form(form) }}
-    </div>
+    {{ wtf.quick_form(form) }}
 </div>
-
-<div class="post-tabs" style="clear: both;">
+<div class="post-tabs">
     {% include '_posts.html' %}
-    {% if pagination.total == 0 %}
-        <h1 style="text-align: center">不存在你搜索的问题内容</h1>
-    {% endif %}
 </div>
 {% if pagination %}
 <div class="pagination">
@@ -32,5 +21,5 @@
 
 {% block scripts %}
 {{ super() }}
-{{ pagedown.include_pagedown() }}
+<script src="{{ url_for('static', filename='js/index.js') }}"></script>
 {% endblock %}

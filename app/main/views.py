@@ -1,14 +1,17 @@
 # coding=utf-8
+import os
 from flask import flash, render_template, redirect, url_for, request, abort,\
-    current_app, make_response
+    current_app, make_response, jsonify
 from .forms import EditAdminProfileForm, EditProfileForm, PostForm,\
     CommentForm, SearchForm
 from flask.ext.login import current_user, login_required
 from flask.ext.sqlalchemy import get_debug_queries
-from ..models import User, Role, Permission, Post, Comment
+from ..models import User, Role, Permission, Post, Comment, \
+    Assortment, Follow
 from .. import db
 from ..decorators import permission_required, admin_required
 from . import main
+from werkzeug.utils import secure_filename
 
 
 import sys
@@ -53,7 +56,29 @@ def index():
         error_out=False)
     posts = pagination.items
     return render_template('index.html', posts=posts,
-                           show_followed=show_followed, pagination=pagination)
+                           show_followed=show_followed, pagination=pagination,
+                           endpoint='.index')
+
+
+@main.route('/category/<int:id>')
+def category(id):
+    page = request.args.get('page', 1, type=int)
+    category_follow = False
+    is_category = True
+    if current_user.is_authenticated:
+        category_follow = bool(request.cookies.get('category_follow', ''))
+    if category_follow:
+        query = Assortment.query.get_or_404(id).posts.join(Follow, Follow.followed_id == Post.author_id) \
+                .filter(Follow.follower_id == current_user.id)
+    else:
+        query = Assortment.query.get_or_404(id).posts
+    pagination = query.order_by(Post.timestamp.asc()).paginate(
+        page, per_page=current_app.config['FLASKY_POSTS_PER_PAGE'],
+        error_out=False)
+    posts = pagination.items
+    return render_template('index.html', posts=posts, is_category=is_category,
+                           category_follow=category_follow, pagination=pagination,
+                           id=id, endpoint='.index')
 
 
 @main.route('/user/<username>')
@@ -91,7 +116,7 @@ def edit_profile():
 @admin_required
 def edit_profile_admin(id):
     user = User.query.get_or_404(id)
-    form = EditAdminProfileForm(user=user)
+    form = EditAdminProfileForm(user=user, current_user=current_user)
     if form.validate_on_submit():
         user.email = form.email.data
         user.username = form.username.data
@@ -120,11 +145,11 @@ def publish_post():
     if form.validate_on_submit():
         post = Post(subject=form.subject.data,
                     body=form.body.data,
+                    assortment=Assortment.query.get(form.assortment.data),
                     author=current_user._get_current_object())
         db.session.add(post)
         db.session.commit()
         flash('发布文章成功。')
-        print post.id
         return redirect(url_for('.post', id=post.id))
     return render_template('publish_post.html', form=form)
 
@@ -157,30 +182,26 @@ def post(id):
 @main.route('/search', methods=['GET', 'POST'])
 def search():
     form = SearchForm()
-    pagination = None
     if form.validate_on_submit():
         return redirect(url_for('.search_body', body=form.body.data))
-    return render_template('search.html', form=form, pagination=pagination)
+    return render_template('search.html', form=form)
 
 
-@main.route('/search_body/<body>', methods=['GET', 'POST'])
+@main.route('/search_body/<string:body>', methods=['GET', 'POST'])
 def search_body(body):
     form = SearchForm()
     if form.validate_on_submit():
         return redirect(url_for('.search_body', body=form.body.data))
     page = request.args.get('page', 1, type=int)
     if body is None and body == '':
-        print 1
         pagination = Post.query.order_by(Post.timestamp.desc()).paginate(
             page, per_page=current_app.config['FLASKY_POSTS_PER_PAGE'],
             error_out=False)
     else:
-        print 2
-        pagination = Post.query.filter(Post.body.ilike('%' + body + '%')).order_by(
+        pagination = Post.query.filter(Post.subject.ilike('%' + body + '%')).order_by(
             Post.timestamp.desc()).paginate(
             page, per_page=current_app.config['FLASKY_POSTS_PER_PAGE'],
             error_out=False)
-    print 3
     posts = pagination.items
     return render_template('search.html', form=form,
                            pagination=pagination, posts=posts)
@@ -197,32 +218,60 @@ def edit(id):
     if form.validate_on_submit():
         post.subject = form.subject.data
         post.body = form.body.data
-        db.session.add(current_user)
+        post.assortment = Assortment.query.get(form.assortment.data)
+        db.session.add(post)
         db.session.commit()
         flash('你的文章修改成功。')
         return redirect(url_for('.post', id=post.id, page=-1))
     form.subject.data = post.subject
     form.body.data = post.body
+    form.assortment.data = post.assortment_id
     return render_template('edit_post.html', form=form)
 
 
-@main.route('/follow/<username>')
+ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'bmp', 'jpe', 'ico', 'svg', 'svgz', 'tiff', 'tif', 'psp', 'psd'}
+UPLOAD_FOLDER = '/static/avatar/'
+
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+
+
+@main.route('/edit_avatar', methods=['GET', 'POST'])
+@login_required
+def edit_avatar():
+    if request.method == 'POST':
+        file = request.files['file']
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            url = os.path.join('app' + UPLOAD_FOLDER, filename)
+            file.save(url)
+            current_user.avatar_hash = UPLOAD_FOLDER + filename
+            db.session.add(current_user)
+            db.session.commit()
+        return redirect(url_for('.user', username=current_user.username))
+    return render_template('edit_avatar.html')
+
+
+@main.route('/follow/<int:id>')
 @login_required
 @permission_required(Permission.FOLLOW)
-def follow(username):
-    user = User.query.filter_by(username=username).first()
+def follow(id):
+    user = User.query.get_or_404(id)
+    bol = False
     if user is None:
-        flash('无效的用户')
         return redirect(url_for('.index'))
     if current_user.is_following(user):
-        flash('你已经关注了此用户')
-        return redirect(url_for('.user', username=username))
-    current_user.follow(user)
-    flash('你成功关注了%s' % user.username)
-    return redirect(url_for('.user', username=username))
+        current_user.unfollow(user)
+        bol = False
+    elif not current_user.is_following(user):
+        current_user.follow(user)
+        bol = True
+    count = user.followers.count() - 1
+    return jsonify(bol=bol, count=count)
 
 
-@main.route('/unfollow/<username>')
+'''@main.route('/unfollow/<username>')
 @login_required
 @permission_required(Permission.FOLLOW)
 def unfollow(username):
@@ -235,7 +284,7 @@ def unfollow(username):
         return redirect(url_for('.user', username=username))
     current_user.unfollow(user)
     flash('你取消关注了%s' % user.username)
-    return redirect(url_for('.user', username=username))
+    return redirect(url_for('.user', username=username))'''
 
 
 @main.route('/followers/<username>')
@@ -273,7 +322,6 @@ def followed_by(username):
 
 
 @main.route('/all')
-@login_required
 def show_all():
     resp = make_response(redirect(url_for('.index')))
     resp.set_cookie('show_followed', '', max_age=30*24*60*60)
@@ -285,6 +333,21 @@ def show_all():
 def show_followed():
     resp = make_response(redirect(url_for('.index')))
     resp.set_cookie('show_followed', '1', max_age=30*24*60*60)
+    return resp
+
+
+@main.route('/category_all/<int:id>')
+def show_category_all(id):
+    resp = make_response(redirect(url_for('.category', id=id)))
+    resp.set_cookie('category_follow', '', max_age=30*24*60*60)
+    return resp
+
+
+@main.route('/category_followed/<int:id>')
+@login_required
+def show_category_followed(id):
+    resp = make_response(redirect(url_for('.category', id=id)))
+    resp.set_cookie('category_follow', '1', max_age=30 * 24 * 60 * 60)
     return resp
 
 

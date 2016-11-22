@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+{% import "_macros.html" as macros %}
+
+{% block title %}Mxtan - 修改头像{% endblock %}
+
+{% block page_content %}
+    <div class="upload-form">
+        <form method="post" enctype="multipart/form-data">
+            <canvas id="cvs" width="200" height="200"></canvas>
+            <span class="pic">
+                上传图片
+                <input type="file" name="file" class="upload_pic">
+            </span>
+            <div>
+                <input class="upload-save" type="submit" value="保存">
+                <input class="upload-reset" type="reset" value="取消">
+            </div>
+        </form>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    {{ pagedown.include_pagedown() }}
+    <script src="{{ url_for('static', filename='js/upload_pic.js') }}"></script>
+{% endblock %}

@@ -5,18 +5,30 @@
 {% block title %}Mxtan - 首页{% endblock %}
 
 {% block page_content %}
-<div class="page-header">
-    <h1>你好, {% if current_user.is_authenticated %}{{ current_user.username }}{% else %}游客{% endif %}!</h1>
-</div>
-<div class="post-tabs">
-    <ul class="nav nav-tabs">
-        <li{% if not show_followed %} class="active"{% endif %}><a href="{{ url_for('.show_all') }}">所有</a></li>
-        {% if current_user.is_authenticated %}
-        <li{% if show_followed %} class="active"{% endif %}><a href="{{ url_for('.show_followed') }}">关注了</a></li>
-        {% endif %}
-    </ul>
-    {% include '_posts.html' %}
-</div>
+{#<div class="page-header">#}
+{#    <h1>你好, {% if current_user.is_authenticated %}{{ current_user.username }}{% else %}游客{% endif %}!</h1>#}
+{#</div>#}
+    {% if not is_category %}
+        <div class="post-tabs">
+            <ul class="nav nav-tabs">
+                <li{% if not show_followed %} class="active"{% endif %}><a href="{{ url_for('.show_all') }}">所有</a></li>
+                {% if current_user.is_authenticated %}
+                <li{% if show_followed %} class="active"{% endif %}><a href="{{ url_for('.show_followed') }}">关注了</a></li>
+                {% endif %}
+            </ul>
+            {% include '_posts.html' %}
+        </div>
+    {% else %}
+        <div class="post-tabs">
+            <ul class="nav nav-tabs">
+                <li{% if not category_follow %} class="active"{% endif %}><a href="{{ url_for('.show_category_all', id=id) }}">所有</a></li>
+                {% if current_user.is_authenticated %}
+                <li{% if category_follow %} class="active"{% endif %}><a href="{{ url_for('.show_category_followed', id=id) }}">关注了</a></li>
+                {% endif %}
+            </ul>
+            {% include '_posts.html' %}
+        </div>
+    {% endif %}
 {% if pagination %}
 <div class="pagination">
     {{ macros.pagination_widget(pagination, '.index') }}
@@ -27,4 +39,5 @@
 {% block scripts %}
 {{ super() }}
 {{ pagedown.include_pagedown() }}
+    <script src="{{ url_for('static', filename='js/index.js') }}"></script>
 {% endblock %}

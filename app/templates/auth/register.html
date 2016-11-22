@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "form_base.html" %}
 {% import "bootstrap/wtf.html" as wtf %}
 
 {% block title %}Mxtan - 注册{% endblock %}
@@ -10,4 +10,10 @@
 <div class="col-md-4">
     {{ wtf.quick_form(form) }}
 </div>
+{% endblock %}
+
+
+{% block scripts %}
+{{ super() }}
+    <script src="{{ url_for('static', filename='js/register.js') }}"></script>
 {% endblock %}

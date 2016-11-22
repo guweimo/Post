@@ -19,7 +19,7 @@ class Config:
     FLASKY_COMMENTS_PER_PAGE = 30
     FLASKY_FOLLOWERS_PER_PAGE = 30
     SQLALCHEMY_RECORD_QUERIES = True    # 启用记录查询统计数字的功能
-    FLASKY_SLOW_DB_QUERY_TIME=0.5       # 缓慢查询的阈值设为0.5秒。
+    FLASKY_SLOW_DB_QUERY_TIME = 0.5       # 缓慢查询的阈值设为0.5秒。
     SSL_DISABLE = False
 
     @staticmethod
@@ -41,7 +41,7 @@ class TestingConfig(Config):
 
 
 class ProductionConfig(Config):
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URI') or \
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
         'sqlite:///' + os.path.join(basedir, 'data.sqlite')
 
     @classmethod

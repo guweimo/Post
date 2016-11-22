@@ -9,7 +9,8 @@ if os.environ.get('FLASK_COVERAGE'):
 from flask.ext.script import Shell, Manager
 from flask.ext.migrate import Migrate, MigrateCommand
 from app import create_app, db
-from app.models import User, Post, Comment, Role, Follow, Permission
+from app.models import User, Post, Comment, Role, Follow, Permission, \
+    Assortment, Upvote, Image, Menu, Browse
 
 
 app = create_app(os.getenv('FLASK_CONFIG') or 'default')
@@ -19,9 +20,22 @@ migrate = Migrate(app, db)
 
 def make_shell_context():
     return dict(app=app, db=db, User=User, Post=Post, Role=Role,
-                Follow=Follow, Comment=Comment, Permission=Permission)
+                Follow=Follow, Comment=Comment, Permission=Permission,
+                Assortment=Assortment, Upvote=Upvote, Image=Image,
+                Menu=Menu, Browse=Browse)
 manager.add_command("Shell", Shell(make_context=make_shell_context))
 manager.add_command('db', MigrateCommand)
+
+
+# JinJa2环境全局变量
+app.jinja_env.globals['User'] = User
+app.jinja_env.globals['Post'] = Post
+app.jinja_env.globals['Comment'] = Comment
+app.jinja_env.globals['Role'] = Role
+app.jinja_env.globals['Follow'] = Follow
+app.jinja_env.globals['Permission'] = Permission
+app.jinja_env.globals['Assortment'] = Assortment
+
 
 
 @manager.command
@@ -69,6 +83,23 @@ def deploy():
     # 让所有用户关注自己
     User.add_self_follows()
 
+    Assortment.insert_assortments()
+
+
+@manager.command
+def initdata():
+    db.create_all()
+    # 创建用户角色
+    Role.insert_roles()
+
+    # 让所有用户关注自己
+    User.add_self_follows()
+
+    Assortment.insert_assortments()
+
+@manager.command
+def drop():
+    db.drop_all()
 
 if __name__ == '__main__':
     manager.run()

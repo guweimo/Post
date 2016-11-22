@@ -5,8 +5,60 @@
 {% block title %}Mxtan - 文章{% endblock %}
 
 {% block page_content %}
-{% include '_posts.html' %}
-<h4 id="comments">评论</h4>
+<ul class="posts">
+    {% if posts %}
+    {% for post in posts %}
+    <li class="post">
+        <div class="post-content">
+            <div class="post-title">
+                <a href="{{ url_for('.post', id=post.id) }}">{{ post.subject }}</a>
+            </div>
+            <div class="meta">
+                <span class="muted">
+                    <i class="fa fa-list-alt"></i>
+                    <a href="{{ url_for('.category', id=post.assortment.id)}}">{{ post.assortment.name }}</a>
+                </span>
+                <span class="muted">
+                    <i class="fa fa-user" title="用户"></i>
+                    <a href="{{ url_for('.user', username=post.author.username) }}">{{ post.author.username }}</a>
+                </span>
+                <span class="muted">
+                    <i class="fa fa-clock-o" title="时间"></i>
+                    {{ moment(post.timestamp).fromNow() }} ({{ moment(post.timestamp).format('L') }})
+                </span>
+                <span class="muted">
+                    <i class="fa fa-comments-o" title="评论"></i>
+                    <a href="{{ url_for('.post', id=post.id) }}#comments">
+                        {{ post.comments.count() }} 个评论
+                    </a>
+                </span>
+            </div>
+            <div class="content">
+                {{ post.body | safe }}
+            </div>
+
+            <div class="post-footer">
+                {% if current_user == post.author %}
+                <a href="{{ url_for('.edit', id=post.id) }}">
+                    <span class="label label-primary">编辑</span>
+                </a>
+                {% elif current_user.is_administrator() %}
+                <a href="{{ url_for('.edit', id=post.id) }}">
+                    <span class="label label-danger">编辑 [Admin]</span>
+                </a>
+                <a href="{{ url_for('.post', id=post.id) }}">
+                    <span class="label label-default">链接</span>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </li>
+    {% endfor %}
+    {% else %}
+         <h1 style="text-align: center;">暂无内容~</h1>
+    {% endif %}
+</ul>
+<h4 id="comments">{{ pagination.total }} 个评论</h4>
 {% if current_user.can(Permission.COMMENT) %}
 <div class="comment-form">
     {{ wtf.quick_form(form) }}

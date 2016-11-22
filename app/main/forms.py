@@ -4,7 +4,7 @@ from wtforms import BooleanField, StringField, SubmitField, SelectField, \
     TextAreaField
 from wtforms.validators import Email, Regexp, Required, Length
 from wtforms import ValidationError
-from ..models import User, Role
+from ..models import User, Role, Assortment
 
 
 import sys
@@ -46,10 +46,15 @@ class EditAdminProfileForm(Form):
     about_me = TextAreaField('自我介绍')
     submit = SubmitField('提交')
 
-    def __init__(self, user, *args, **kwargs):
+    def __init__(self, user, current_user, *args, **kwargs):
         super(EditAdminProfileForm, self).__init__(*args, **kwargs)
-        self.role.choices = [(role.id, role.name)
+        choices = [(role.id, role.name)
                              for role in Role.query.order_by(Role.name).all()]
+        self.role.choices = []
+        for c in choices:
+            role = Role.query.get(c[0])
+            if role.permission <= current_user.role.permission:
+                self.role.choices.append(c)
         self.user = user
 
     def validate_email(self, field):
@@ -68,10 +73,16 @@ class PostForm(Form):
         Required(message='不能为空'),
         Length(1, 256)
     ])
+    assortment = SelectField('分类', coerce=int)
     body = TextAreaField('内容', validators=[
         Required(message='不能为空')
     ])
     submit = SubmitField('提交')
+
+    def __init__(self, *args, **kwargs):
+        super(PostForm, self).__init__(*args, **kwargs)
+        self.assortment.choices = [(a.id, a.name)
+                                   for a in Assortment.query.order_by(Assortment.name).all()]
 
 
 class CommentForm(Form):
@@ -82,8 +93,5 @@ class CommentForm(Form):
 
 
 class SearchForm(Form):
-    body = StringField('内容', validators=[
-        Required(message='不能为空'),
-        Length(1, 128)
-    ])
+    body = StringField('标题')
     submit = SubmitField('搜索')
