@@ -5,6 +5,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Config:
+    BOOTSTRAP_QUERYSTRING_REVVING = True        # bootstrap版本号
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'hard to guess string'
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     MAIL_PORT = 587

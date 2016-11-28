@@ -3,43 +3,43 @@
  */
 
 
-
-
-$(function () {
-    // $(".profile-header .btn").bind('click', function () {
-    //     $.get("/follow/1", function (data) {
-    //         if (data.bol) {
-    //             $(".profile-header .btn").removeClass("btn-primary");
-    //             $(".profile-header .btn").addClass("btn-default");
-    //             $(".profile-header .btn").text("取消关注");
-    //         } else {
-    //             $(".profile-header .btn").removeClass("btn-default");
-    //             $(".profile-header .btn").addClass("btn-primary");
-    //             $(".profile-header .btn").text("关注");
-    //         }
-    //     });
-    // });
-    $(".profile-header .btn").bind('click', function () {
-        $.ajax({
-            url: '/follow/1',
-            dataType: 'json',
-            data: null,
-            contentType: "application/json;charset=utf-8",
-            success: function (data) {
-                if (data.bol) {
-                    $(".profile-header .btn").removeClass("btn-primary");
-                    $(".profile-header .btn").addClass("btn-default");
-                    $(".profile-header .btn").text("取消关注");
-                } else {
-                    $(".profile-header .btn").removeClass("btn-default");
-                    $(".profile-header .btn").addClass("btn-primary");
-                    $(".profile-header .btn").text("关注");
+$(function() {
+    $("#email").blur(function () {
+        if ($("#email").val() != '') {
+            $.ajax({
+                type: 'POST',
+                url: "check_email",
+                dataType: "json",
+                data: {'email': $("#email").val()},
+                success: function (data) {
+                    email = $("#email");
+                    if (email.next('p').length > 0) {
+                        email.next('p').html(data.result);
+                    } else {
+                        email.parent().append("<p class='help-block'>" + data.result + "</p>");
+                    }
                 }
-                $(".badge:first").text(data.count);
-            },
-            error: function (result) {
-                alert(result.status + "：" + result.statusText);
-            }
-        });
+            });
+        }
+    });
+
+    $("#username").blur(function () {
+        if ($("#username").val() != '') {
+            $.ajax({
+                type: 'POST',
+                url: "check_email",
+                dataType: "json",
+                data: {'username': $("#username").val()},
+                success: function (data) {
+                    username = $("#username");
+                    if (username.next('p').length > 0) {
+                        username.next('p').html(data.result);
+                    } else {
+                        username.parent().append("<p class='help-block'>" + data.result + "</p>");
+                    }
+                }
+            });
+        }
+
     });
 });

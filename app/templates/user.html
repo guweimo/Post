@@ -61,6 +61,29 @@
 <script src="{{ url_for('static', filename='js/index.js') }}"></script>
     <script src="{{ url_for('static', filename='js/ajax.js') }}"></script>
     <script type="text/javascript">
-
+        $(".profile-header .btn").bind('click', function () {
+            $.ajax({
+                url: '/follow/' + {{ user.id }},
+                dataType: 'json',
+                data: null,
+                contentType: "application/json;charset=utf-8",
+                timeout: 2000,
+                success: function (data) {
+                    if (data.bol) {
+                        $(".profile-header .btn").removeClass("btn-primary");
+                        $(".profile-header .btn").addClass("btn-default");
+                        $(".profile-header .btn").text("取消关注");
+                    } else {
+                        $(".profile-header .btn").removeClass("btn-default");
+                        $(".profile-header .btn").addClass("btn-primary");
+                        $(".profile-header .btn").text("关注");
+                    }
+                    $(".badge:first").text(data.count);
+                },
+                error: function () {
+                    alert('请重新刷新');
+                }
+            });
+        });
     </script>
 {% endblock %}

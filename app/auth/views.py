@@ -1,5 +1,6 @@
 # coding=utf-8
-from flask import render_template, redirect, url_for, flash, request
+from flask import render_template, redirect, url_for, flash, request, \
+    jsonify, json
 from flask.ext.login import login_user, login_required, logout_user, \
     current_user
 from . import auth
@@ -66,6 +67,24 @@ def register():
         flash('确认邮件已经发送到你的电子邮箱中。')
         return redirect(url_for('main.index'))
     return render_template('auth/register.html', form=form)
+
+
+@auth.route('/check_username', methods=['POST'])
+def check_username():
+    username = request.form['username']
+    if User.query.filter_by(username=username).first():
+        return jsonify(result='该用户名已存在')
+    else:
+        return jsonify(result='')
+
+
+@auth.route('/check_email', methods=['POST'])
+def check_email():
+    email = request.form['email']
+    if User.query.filter_by(email=email).first():
+        return jsonify(result='该电子邮件已存在')
+    else:
+        return jsonify(result='')
 
 
 @auth.route('/confirm/<token>')
